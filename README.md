@@ -1,55 +1,78 @@
-# 📚 The Koloqwa Dictionary
 
-The Koloqwa Dictionary is a modern web platform for searching and preserving Liberian local language words and phrases. It allows anyone to search without login, while registered users can contribute new entries for admin review and approval.
+# 📚 The Koloqwa Dictionary (Backend API)
+
+The Koloqwa Dictionary backend is a scalable REST API built with .NET 9 that powers word search, phrase lookup, and community-driven contributions for Liberian local languages.
+
+It follows Clean Architecture principles and supports role-based moderation workflows.
 
 ---
 
 ## 🚀 Features
 
-### 🌍 Public Access
-- Search dictionary words and meanings
+### 🌍 Public API
+- Search dictionary words
 - Search phrase glossary
-- No login required
+- Retrieve approved entries
 
-### 👤 User Contributions
-- Register and submit new words or phrases
-- Add meanings and examples
+### 👤 Authentication
+- User registration & login
+- JWT-based authentication
+- Role-based access control
+
+### 📝 Contribution System
+- Submit new words and phrases
+- Store submissions in approval queue
 - Track submission status
 
 ### 🛡️ Admin System
-- Approve or reject submissions
+- Approve/reject submissions
 - Edit entries before publishing
-- Manage users and content
+- Manage users and roles
 
 ---
 
 ## 🏗️ Tech Stack
 
-- **Frontend:** Next.js (React), Tailwind CSS
-- **Backend:** .NET 9 Web API (Clean Architecture)
-- **Database:** PostgreSQL
-- **Auth:** JWT (Role-based access)
+- .NET 9 Web API
+- Entity Framework Core
+- PostgreSQL
+- JWT Authentication
+- Clean Architecture (Domain, Application, Infrastructure, API)
 
 ---
 
-## 🧠 Workflow
+## 📦 Core Modules
 
-1. User submits a word/phrase
-2. Entry is stored in a pending queue
-3. Admin reviews and approves/rejects
-4. Approved entries appear in public search
+- Authentication Module
+- Dictionary Module
+- Phrase Module
+- Submission Workflow Module
+- Admin Module
+
+---
+
+## 🧠 Submission Workflow
+
+1. User submits word or phrase
+2. Entry is stored in `SubmissionQueue`
+3. Admin reviews entry
+4. Admin approves/rejects
+5. Approved entries are published
 
 ---
 
 ## 📂 Project Structure
-/frontend → Next.js app
-/backend → .NET 9 API
-/database → PostgreSQL schema
-/docs → Design & API docs
-
+/src
+/Domain
+/Application
+/Infrastructure
+/API
 
 ---
 
-## 🎯 Goal
+## 🔐 Roles
 
-To preserve and digitize Liberian local languages through a simple, searchable, and community-driven dictio
+- **Guest:** Search content
+- **User:** Submit entries
+- **Admin:** Moderate content
+- **SuperAdmin:** Full system control

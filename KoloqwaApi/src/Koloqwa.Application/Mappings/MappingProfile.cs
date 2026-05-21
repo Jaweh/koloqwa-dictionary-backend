@@ -15,8 +15,9 @@ public class MappingProfile : Profile
         // Word
         CreateMap<WordEntry, WordSummaryDto>()
             .ForMember(d => d.PartOfSpeech, o => o.MapFrom(s => s.PartOfSpeech.ToString()))
-            .ForMember(d => d.LanguageCode, o => o.MapFrom(s => s.Language.Code))
-            .ForMember(d => d.LanguageName, o => o.MapFrom(s => s.Language.Name))
+            .ForMember(d => d.Category, o => o.MapFrom(s => s.Category.ToString()))
+            .ForMember(d => d.LanguageCode, o => o.MapFrom(s => s.Language != null ? s.Language.Code : null))
+            .ForMember(d => d.LanguageName, o => o.MapFrom(s => s.Language != null ? s.Language.Name : null))
             .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()))
             .ForMember(d => d.FirstDefinition,
                 o => o.MapFrom(s => s.Definitions.OrderBy(d => d.SortOrder)
@@ -25,8 +26,9 @@ public class MappingProfile : Profile
 
         CreateMap<WordEntry, WordDetailDto>()
             .ForMember(d => d.PartOfSpeech, o => o.MapFrom(s => s.PartOfSpeech.ToString()))
-            .ForMember(d => d.LanguageCode, o => o.MapFrom(s => s.Language.Code))
-            .ForMember(d => d.LanguageName, o => o.MapFrom(s => s.Language.Name))
+            .ForMember(d => d.Category, o => o.MapFrom(s => s.Category.ToString()))
+            .ForMember(d => d.LanguageCode, o => o.MapFrom(s => s.Language != null ? s.Language.Code : null))
+            .ForMember(d => d.LanguageName, o => o.MapFrom(s => s.Language != null ? s.Language.Name : null))
             .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()));
 
         CreateMap<WordDefinition, DefinitionDto>();
@@ -34,8 +36,9 @@ public class MappingProfile : Profile
 
         // Phrase
         CreateMap<PhraseEntry, PhraseSummaryDto>()
-            .ForMember(d => d.LanguageCode, o => o.MapFrom(s => s.Language.Code))
-            .ForMember(d => d.LanguageName, o => o.MapFrom(s => s.Language.Name))
+            .ForMember(d => d.Category, o => o.MapFrom(s => s.Category.ToString()))
+            .ForMember(d => d.LanguageCode, o => o.MapFrom(s => s.Language != null ? s.Language.Code : null))
+            .ForMember(d => d.LanguageName, o => o.MapFrom(s => s.Language != null ? s.Language.Name : null))
             .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()))
             .ForMember(d => d.FirstMeaning,
                 o => o.MapFrom(s => s.Meanings.OrderBy(m => m.SortOrder)
@@ -43,8 +46,9 @@ public class MappingProfile : Profile
                                               .FirstOrDefault() ?? string.Empty));
 
         CreateMap<PhraseEntry, PhraseDetailDto>()
-            .ForMember(d => d.LanguageCode, o => o.MapFrom(s => s.Language.Code))
-            .ForMember(d => d.LanguageName, o => o.MapFrom(s => s.Language.Name))
+            .ForMember(d => d.Category, o => o.MapFrom(s => s.Category.ToString()))
+            .ForMember(d => d.LanguageCode, o => o.MapFrom(s => s.Language != null ? s.Language.Code : null))
+            .ForMember(d => d.LanguageName, o => o.MapFrom(s => s.Language != null ? s.Language.Name : null))
             .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()));
 
         CreateMap<PhraseMeaning, MeaningDto>();

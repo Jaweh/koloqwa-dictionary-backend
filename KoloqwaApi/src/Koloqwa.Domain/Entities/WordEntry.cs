@@ -5,7 +5,8 @@ namespace Koloqwa.Domain.Entities;
 
 public class WordEntry : AuditableEntity
 {
-    public Guid LanguageId { get; set; }
+    public EntryCategory Category { get; set; } = EntryCategory.Vernacular;
+    public Guid? LanguageId { get; set; }          // null for Vernacular entries
     public string Headword { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public PartOfSpeech PartOfSpeech { get; set; }
@@ -18,7 +19,7 @@ public class WordEntry : AuditableEntity
     public DateTime? PublishedAt { get; set; }
 
     // Navigation
-    public Language Language { get; set; } = null!;
+    public Language? Language { get; set; }
     public User? SubmittedBy { get; set; }
     public User? ReviewedBy { get; set; }
     public ICollection<WordDefinition> Definitions { get; set; } = new List<WordDefinition>();

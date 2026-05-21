@@ -16,8 +16,7 @@ public class CreatePhraseCommandHandler : IRequestHandler<CreatePhraseCommand, G
     private readonly IPhraseRepository _phrases;
     private readonly ISlugService _slugs;
 
-    public CreatePhraseCommandHandler(
-        IApplicationDbContext db, IPhraseRepository phrases, ISlugService slugs)
+    public CreatePhraseCommandHandler(IApplicationDbContext db, IPhraseRepository phrases, ISlugService slugs)
     {
         _db = db; _phrases = phrases; _slugs = slugs;
     }
@@ -26,16 +25,24 @@ public class CreatePhraseCommandHandler : IRequestHandler<CreatePhraseCommand, G
     {
         var req = request.Request;
 
-        var language = await _db.Languages.FindAsync(new object[] { req.LanguageId }, ct);
-        if (language is null)
-            throw new NotFoundException(nameof(Language), req.LanguageId);
+        var category = Enum.Parse<EntryCategory>(req.Category, true);
+
+        if (category == EntryCategory.Tribal)
+        {
+            if (req.LanguageId is null)
+                throw new DomainException("LanguageId is required for Tribal entries.");
+            var language = await _db.Languages.FindAsync(new object[] { req.LanguageId }, ct);
+            if (language is null)
+                throw new NotFoundException(nameof(Language), req.LanguageId);
+        }
 
         var slug = await _slugs.GenerateUniqueAsync(req.PhraseText,
             async s => await _phrases.SlugExistsAsync(s, ct));
 
         var phrase = new PhraseEntry
         {
-            LanguageId = req.LanguageId,
+            Category = category,
+            LanguageId = category == EntryCategory.Tribal ? req.LanguageId : null,
             PhraseText = req.PhraseText.Trim(),
             Slug = slug,
             LiteralMeaning = req.LiteralMeaning,

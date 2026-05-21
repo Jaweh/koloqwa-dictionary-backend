@@ -4,7 +4,8 @@ using Koloqwa.Domain.Enums;
 namespace Koloqwa.Application.DTOs;
 
 public record CreateWordRequest(
-    [Required] Guid LanguageId,
+    [Required] string Category,            // "Vernacular" or "Tribal"
+    Guid? LanguageId,                      // Required when Category = Tribal
     [Required][MinLength(1)][MaxLength(200)] string Headword,
     [Required] PartOfSpeech PartOfSpeech,
     string? Pronunciation,
@@ -25,6 +26,7 @@ public record CreateExampleRequest(
 );
 
 public record UpdateWordRequest(
+    string? Category,
     Guid? LanguageId,
     string? Headword,
     PartOfSpeech? PartOfSpeech,
@@ -37,8 +39,9 @@ public record WordSummaryDto(
     string Headword,
     string Slug,
     string PartOfSpeech,
-    string LanguageCode,
-    string LanguageName,
+    string Category,
+    string? LanguageCode,
+    string? LanguageName,
     string FirstDefinition,
     string Status,
     DateTime? PublishedAt
@@ -52,9 +55,10 @@ public record WordDetailDto(
     string? Pronunciation,
     string? AudioUrl,
     List<string> Tags,
+    string Category,
     string Status,
-    string LanguageCode,
-    string LanguageName,
+    string? LanguageCode,
+    string? LanguageName,
     List<DefinitionDto> Definitions,
     DateTime? PublishedAt,
     DateTime CreatedAt

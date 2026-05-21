@@ -22,18 +22,24 @@ public class DictionaryController : ControllerBase
         _mediator = mediator; _currentUser = currentUser;
     }
 
-    /// <summary>Search published words. No authentication required.</summary>
+    /// <summary>
+    /// Search published words.
+    /// Use ?category=Vernacular for street language, ?category=Tribal&amp;lang=kpe for tribal words.
+    /// No authentication required.
+    /// </summary>
     [HttpGet("search")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<WordSummaryDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Search(
         [FromQuery] string? q,
+        [FromQuery] string? category,
         [FromQuery] string? lang,
         [FromQuery] string? pos,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
-        var result = await _mediator.Send(new SearchWordsQuery(q, lang, pos, page, pageSize), ct);
+        var result = await _mediator.Send(
+            new SearchWordsQuery(q, category, lang, pos, page, pageSize), ct);
         return Ok(ApiResponse<PagedResult<WordSummaryDto>>.Ok(result));
     }
 
@@ -47,7 +53,7 @@ public class DictionaryController : ControllerBase
         return Ok(ApiResponse<WordDetailDto>.Ok(result));
     }
 
-    /// <summary>Submit a new word entry (goes to approval queue).</summary>
+    /// <summary>Submit a new word entry (goes to approval queue). Requires authentication.</summary>
     [HttpPost]
     [Authorize]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status202Accepted)]

@@ -5,7 +5,6 @@ using Koloqwa.Domain.Entities;
 using Koloqwa.Domain.Enums;
 using Koloqwa.Domain.Exceptions;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 namespace Koloqwa.Application.Features.Words.Commands;
 
@@ -17,8 +16,7 @@ public class CreateWordCommandHandler : IRequestHandler<CreateWordCommand, Guid>
     private readonly IWordRepository _words;
     private readonly ISlugService _slugs;
 
-    public CreateWordCommandHandler(
-        IApplicationDbContext db, IWordRepository words, ISlugService slugs)
+    public CreateWordCommandHandler(IApplicationDbContext db, IWordRepository words, ISlugService slugs)
     {
         _db = db; _words = words; _slugs = slugs;
     }
@@ -27,16 +25,25 @@ public class CreateWordCommandHandler : IRequestHandler<CreateWordCommand, Guid>
     {
         var req = request.Request;
 
-        var language = await _db.Languages.FindAsync(new object[] { req.LanguageId }, ct);
-        if (language is null)
-            throw new NotFoundException(nameof(Language), req.LanguageId);
+        var category = Enum.Parse<EntryCategory>(req.Category, true);
+
+        // Validate language for tribal entries
+        if (category == EntryCategory.Tribal)
+        {
+            if (req.LanguageId is null)
+                throw new DomainException("LanguageId is required for Tribal entries.");
+            var language = await _db.Languages.FindAsync(new object[] { req.LanguageId }, ct);
+            if (language is null)
+                throw new NotFoundException(nameof(Language), req.LanguageId);
+        }
 
         var slug = await _slugs.GenerateUniqueAsync(req.Headword,
             async s => await _words.SlugExistsAsync(s, ct));
 
         var word = new WordEntry
         {
-            LanguageId = req.LanguageId,
+            Category = category,
+            LanguageId = category == EntryCategory.Tribal ? req.LanguageId : null,
             Headword = req.Headword.Trim(),
             Slug = slug,
             PartOfSpeech = req.PartOfSpeech,

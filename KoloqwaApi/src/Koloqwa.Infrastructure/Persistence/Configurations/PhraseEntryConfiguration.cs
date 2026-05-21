@@ -12,17 +12,24 @@ public class PhraseEntryConfiguration : IEntityTypeConfiguration<PhraseEntry>
         builder.HasKey(p => p.Id);
         builder.HasIndex(p => p.Slug).IsUnique();
         builder.HasIndex(p => p.Status);
+        builder.HasIndex(p => p.Category);
+        builder.HasIndex(p => new { p.Category, p.Status });
 
         builder.Property(p => p.PhraseText).IsRequired().HasMaxLength(500);
         builder.Property(p => p.Slug).IsRequired().HasMaxLength(550);
+        builder.Property(p => p.Category)
+            .HasConversion<string>()
+            .HasDefaultValue(EntryCategory.Vernacular);
         builder.Property(p => p.Status)
             .HasConversion<string>()
             .HasDefaultValue(EntryStatus.PendingReview);
         builder.Property(p => p.Tags).HasColumnType("text[]");
 
+        // LanguageId is now nullable
         builder.HasOne(p => p.Language)
             .WithMany(l => l.Phrases)
             .HasForeignKey(p => p.LanguageId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(p => p.SubmittedBy)

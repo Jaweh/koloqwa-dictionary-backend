@@ -8,6 +8,7 @@ namespace Koloqwa.Application.Features.Phrases.Queries;
 
 public record SearchPhrasesQuery(
     string? Q,
+    string? Category,
     string? LanguageCode,
     int Page = 1,
     int PageSize = 20
@@ -26,7 +27,7 @@ public class SearchPhrasesQueryHandler : IRequestHandler<SearchPhrasesQuery, Pag
     public async Task<PagedResult<PhraseSummaryDto>> Handle(SearchPhrasesQuery request, CancellationToken ct)
     {
         var result = await _phrases.SearchAsync(
-            request.Q, request.LanguageCode,
+            request.Q, request.Category, request.LanguageCode,
             request.Page, request.PageSize, ct);
 
         return new PagedResult<PhraseSummaryDto>

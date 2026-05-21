@@ -22,31 +22,37 @@ public class PhraseController : ControllerBase
         _mediator = mediator; _currentUser = currentUser;
     }
 
-    /// <summary>Search published phrases. No authentication required.</summary>
+    /// <summary>
+    /// Search published phrases.
+    /// Use ?category=Vernacular for expressions, ?category=Tribal&amp;lang=kpe for tribal phrases.
+    /// No authentication required.
+    /// </summary>
     [HttpGet("search")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<PhraseSummaryDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Search(
         [FromQuery] string? q,
+        [FromQuery] string? category,
         [FromQuery] string? lang,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
-        var result = await _mediator.Send(new SearchPhrasesQuery(q, lang, page, pageSize), ct);
+        var result = await _mediator.Send(
+            new SearchPhrasesQuery(q, category, lang, page, pageSize), ct);
         return Ok(ApiResponse<PagedResult<PhraseSummaryDto>>.Ok(result));
     }
 
-    /// <summary>Get a published phrase entry by slug. No authentication required.</summary>
+    /// <summary>Get a published phrase entry by slug.</summary>
     [HttpGet("{slug}")]
     [ProducesResponseType(typeof(ApiResponse<PhraseDetailDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetBySlug(string slug, CancellationToken ct)
     {
         var result = await _mediator.Send(new GetPhraseBySlugQuery(slug), ct);
         return Ok(ApiResponse<PhraseDetailDto>.Ok(result));
     }
 
-    /// <summary>Submit a new phrase entry (goes to approval queue).</summary>
+    /// <summary>Submit a new phrase entry. Requires authentication.</summary>
     [HttpPost]
     [Authorize]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status202Accepted)]

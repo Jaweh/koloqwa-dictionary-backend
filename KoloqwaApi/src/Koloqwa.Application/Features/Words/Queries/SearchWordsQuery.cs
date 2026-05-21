@@ -8,6 +8,7 @@ namespace Koloqwa.Application.Features.Words.Queries;
 
 public record SearchWordsQuery(
     string? Q,
+    string? Category,
     string? LanguageCode,
     string? PartOfSpeech,
     int Page = 1,
@@ -27,8 +28,8 @@ public class SearchWordsQueryHandler : IRequestHandler<SearchWordsQuery, PagedRe
     public async Task<PagedResult<WordSummaryDto>> Handle(SearchWordsQuery request, CancellationToken ct)
     {
         var result = await _words.SearchAsync(
-            request.Q, request.LanguageCode, request.PartOfSpeech,
-            request.Page, request.PageSize, ct);
+            request.Q, request.Category, request.LanguageCode,
+            request.PartOfSpeech, request.Page, request.PageSize, ct);
 
         return new PagedResult<WordSummaryDto>
         {

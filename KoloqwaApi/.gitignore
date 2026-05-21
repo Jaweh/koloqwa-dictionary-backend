@@ -1,0 +1,12 @@
+bin/
+obj/
+*.user
+.vs/
+.vscode/
+*.suo
+logs/
+appsettings.Development.json
+*.pfx
+*.p12
+.env
+.env.local

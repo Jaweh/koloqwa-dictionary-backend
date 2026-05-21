@@ -15,11 +15,6 @@ public record SubmissionDto(
     DateTime? ReviewedAt
 );
 
-public record ReviewSubmissionRequest(
-    string Decision,   // "approve" | "reject"
-    string? AdminNote
-);
-
 public record EditBeforePublishRequest(
     string? Headword,       // for words
     string? PhraseText,     // for phrases

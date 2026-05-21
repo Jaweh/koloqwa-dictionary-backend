@@ -1,5 +1,4 @@
 using Koloqwa.Application.Common.Interfaces;
-using Koloqwa.Application.DTOs;
 using Koloqwa.Domain.Enums;
 using Koloqwa.Domain.Exceptions;
 using MediatR;
@@ -9,70 +8,71 @@ namespace Koloqwa.Application.Features.Admin.Commands;
 
 public record ReviewSubmissionCommand(
     Guid SubmissionId,
-    ReviewSubmissionRequest Request,
+    string Action,
+    string? AdminNote,
     Guid ReviewerId
-) : IRequest<Unit>;
+) : IRequest;
 
-public class ReviewSubmissionCommandHandler : IRequestHandler<ReviewSubmissionCommand, Unit>
+public class ReviewSubmissionCommandHandler : IRequestHandler<ReviewSubmissionCommand>
 {
     private readonly IApplicationDbContext _db;
-    private readonly IAuditService _audit;
+    public ReviewSubmissionCommandHandler(IApplicationDbContext db) => _db = db;
 
-    public ReviewSubmissionCommandHandler(IApplicationDbContext db, IAuditService audit)
-    {
-        _db = db; _audit = audit;
-    }
-
-    public async Task<Unit> Handle(ReviewSubmissionCommand request, CancellationToken ct)
+    public async Task Handle(ReviewSubmissionCommand request, CancellationToken ct)
     {
         var submission = await _db.SubmissionQueues
-            .Include(s => s.WordEntry)
-            .Include(s => s.PhraseEntry)
-            .FirstOrDefaultAsync(s => s.Id == request.SubmissionId, ct);
-
-        if (submission is null)
-            throw new NotFoundException(nameof(Domain.Entities.SubmissionQueue), request.SubmissionId);
+            .FirstOrDefaultAsync(s => s.Id == request.SubmissionId, ct)
+            ?? throw new NotFoundException("Submission", request.SubmissionId);
 
         if (submission.Status != EntryStatus.PendingReview)
-            throw new DomainException("This submission has already been reviewed.");
+            throw new DomainException("Only pending submissions can be reviewed.");
 
-        var decision = request.Request.Decision.ToLower();
-        if (decision != "approve" && decision != "reject")
-            throw new DomainException("Decision must be 'approve' or 'reject'.");
-
-        var newStatus = decision == "approve" ? EntryStatus.Approved : EntryStatus.Rejected;
+        var newStatus = request.Action.ToLower() == "approve"
+            ? EntryStatus.Approved
+            : EntryStatus.Rejected;
 
         submission.Status = newStatus;
-        submission.AdminNote = request.Request.AdminNote;
+        submission.AdminNote = request.AdminNote;
         submission.ReviewedById = request.ReviewerId;
         submission.ReviewedAt = DateTime.UtcNow;
+        submission.UpdatedAt = DateTime.UtcNow;
 
-        // Update the actual entry status
-        if (submission.EntryType == SubmissionType.Word && submission.WordEntry is not null)
+        // Update the underlying entry status
+        if (submission.EntryType == SubmissionType.Word)
         {
-            submission.WordEntry.Status = newStatus;
-            submission.WordEntry.ReviewedById = request.ReviewerId;
-            if (newStatus == EntryStatus.Approved)
-                submission.WordEntry.PublishedAt = DateTime.UtcNow;
+            var word = await _db.WordEntries.FindAsync(new object[] { submission.EntryId }, ct);
+            if (word != null)
+            {
+                word.Status = newStatus;
+                word.ReviewedById = request.ReviewerId;
+                if (newStatus == EntryStatus.Approved)
+                    word.PublishedAt = DateTime.UtcNow;
+                word.UpdatedAt = DateTime.UtcNow;
+            }
         }
-        else if (submission.EntryType == SubmissionType.Phrase && submission.PhraseEntry is not null)
+        else if (submission.EntryType == SubmissionType.Phrase)
         {
-            submission.PhraseEntry.Status = newStatus;
-            submission.PhraseEntry.ReviewedById = request.ReviewerId;
-            if (newStatus == EntryStatus.Approved)
-                submission.PhraseEntry.PublishedAt = DateTime.UtcNow;
+            var phrase = await _db.PhraseEntries.FindAsync(new object[] { submission.EntryId }, ct);
+            if (phrase != null)
+            {
+                phrase.Status = newStatus;
+                phrase.ReviewedById = request.ReviewerId;
+                if (newStatus == EntryStatus.Approved)
+                    phrase.PublishedAt = DateTime.UtcNow;
+                phrase.UpdatedAt = DateTime.UtcNow;
+            }
         }
+
+        // Audit log
+        _db.AuditLogs.Add(new Domain.Entities.AuditLog
+        {
+            ActorId = request.ReviewerId,
+            Action = $"Submission.{request.Action}",
+            EntityType = submission.EntryType.ToString(),
+            EntityId = submission.EntryId,
+            DiffJson = request.AdminNote ?? $"{request.Action}d by admin"
+        });
 
         await _db.SaveChangesAsync(ct);
-
-        await _audit.LogAsync(
-            action: decision == "approve" ? "Approved" : "Rejected",
-            entityType: submission.EntryType.ToString(),
-            entityId: submission.EntryId,
-            before: null,
-            after: new { Status = newStatus.ToString(), Note = request.Request.AdminNote },
-            ct);
-
-        return Unit.Value;
     }
 }

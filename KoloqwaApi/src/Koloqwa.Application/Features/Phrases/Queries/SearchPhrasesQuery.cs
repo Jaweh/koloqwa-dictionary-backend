@@ -1,4 +1,3 @@
-using AutoMapper;
 using Koloqwa.Application.Common.Interfaces.Repositories;
 using Koloqwa.Application.Common.Models;
 using Koloqwa.Application.DTOs;
@@ -17,11 +16,10 @@ public record SearchPhrasesQuery(
 public class SearchPhrasesQueryHandler : IRequestHandler<SearchPhrasesQuery, PagedResult<PhraseSummaryDto>>
 {
     private readonly IPhraseRepository _phrases;
-    private readonly IMapper _mapper;
 
-    public SearchPhrasesQueryHandler(IPhraseRepository phrases, IMapper mapper)
+    public SearchPhrasesQueryHandler(IPhraseRepository phrases)
     {
-        _phrases = phrases; _mapper = mapper;
+        _phrases = phrases;
     }
 
     public async Task<PagedResult<PhraseSummaryDto>> Handle(SearchPhrasesQuery request, CancellationToken ct)
@@ -30,9 +28,23 @@ public class SearchPhrasesQueryHandler : IRequestHandler<SearchPhrasesQuery, Pag
             request.Q, request.Category, request.LanguageCode,
             request.Page, request.PageSize, ct);
 
+        var items = result.Items.Select(p => new PhraseSummaryDto(
+            Id: p.Id,
+            PhraseText: p.PhraseText,
+            Slug: p.Slug,
+            Category: p.Category.ToString(),
+            LanguageCode: p.Language?.Code,
+            LanguageName: p.Language?.Name,
+            FirstMeaning: p.Meanings.OrderBy(m => m.SortOrder)
+                                    .Select(m => m.Meaning)
+                                    .FirstOrDefault() ?? string.Empty,
+            Status: p.Status.ToString(),
+            PublishedAt: p.PublishedAt
+        ));
+
         return new PagedResult<PhraseSummaryDto>
         {
-            Items = _mapper.Map<IEnumerable<PhraseSummaryDto>>(result.Items),
+            Items = items,
             TotalCount = result.TotalCount,
             Page = result.Page,
             PageSize = result.PageSize

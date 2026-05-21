@@ -1,4 +1,3 @@
-using AutoMapper;
 using Koloqwa.Application.Common.Interfaces.Repositories;
 using Koloqwa.Application.Common.Models;
 using Koloqwa.Application.DTOs;
@@ -18,11 +17,10 @@ public record SearchWordsQuery(
 public class SearchWordsQueryHandler : IRequestHandler<SearchWordsQuery, PagedResult<WordSummaryDto>>
 {
     private readonly IWordRepository _words;
-    private readonly IMapper _mapper;
 
-    public SearchWordsQueryHandler(IWordRepository words, IMapper mapper)
+    public SearchWordsQueryHandler(IWordRepository words)
     {
-        _words = words; _mapper = mapper;
+        _words = words;
     }
 
     public async Task<PagedResult<WordSummaryDto>> Handle(SearchWordsQuery request, CancellationToken ct)
@@ -31,9 +29,24 @@ public class SearchWordsQueryHandler : IRequestHandler<SearchWordsQuery, PagedRe
             request.Q, request.Category, request.LanguageCode,
             request.PartOfSpeech, request.Page, request.PageSize, ct);
 
+        var items = result.Items.Select(w => new WordSummaryDto(
+            Id: w.Id,
+            Headword: w.Headword,
+            Slug: w.Slug,
+            PartOfSpeech: w.PartOfSpeech.ToString(),
+            Category: w.Category.ToString(),
+            LanguageCode: w.Language?.Code,
+            LanguageName: w.Language?.Name,
+            FirstDefinition: w.Definitions.OrderBy(d => d.SortOrder)
+                                          .Select(d => d.Definition)
+                                          .FirstOrDefault() ?? string.Empty,
+            Status: w.Status.ToString(),
+            PublishedAt: w.PublishedAt
+        ));
+
         return new PagedResult<WordSummaryDto>
         {
-            Items = _mapper.Map<IEnumerable<WordSummaryDto>>(result.Items),
+            Items = items,
             TotalCount = result.TotalCount,
             Page = result.Page,
             PageSize = result.PageSize

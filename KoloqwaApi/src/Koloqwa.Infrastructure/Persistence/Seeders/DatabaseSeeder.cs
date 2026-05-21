@@ -19,23 +19,7 @@ public class DatabaseSeeder
     {
         await _db.Database.MigrateAsync();
 
-        if (!await _db.Languages.AnyAsync())
-        {
-            _logger.LogInformation("Seeding languages...");
-            var languages = new[]
-            {
-                new Language { Code = "kpe", Name = "Kpelle",  Region = "Central Liberia" },
-                new Language { Code = "bss", Name = "Bassa",   Region = "Central & Coastal Liberia" },
-                new Language { Code = "grb", Name = "Grebo",   Region = "Southeast Liberia" },
-                new Language { Code = "vai", Name = "Vai",     Region = "Northwest Liberia" },
-                new Language { Code = "mnd", Name = "Mende",   Region = "Lofa County" },
-                new Language { Code = "gio", Name = "Dan/Gio", Region = "Nimba County" },
-                new Language { Code = "kra", Name = "Krahn",   Region = "Grand Gedeh County" },
-                new Language { Code = "lom", Name = "Loma",    Region = "Lofa County" },
-            };
-            await _db.Languages.AddRangeAsync(languages);
-            await _db.SaveChangesAsync();
-        }
+        await SeedLanguagesAsync();
 
         if (!await _db.Users.AnyAsync(u => u.Role == UserRole.SuperAdmin))
         {
@@ -53,6 +37,52 @@ public class DatabaseSeeder
             _db.Users.Add(admin);
             await _db.SaveChangesAsync();
             _logger.LogInformation("SuperAdmin created: admin@koloqwa.lr / Admin@123!");
+        }
+    }
+
+    private async Task SeedLanguagesAsync()
+    {
+        var allLanguages = new[]
+        {
+            new { Code = "kpe", Name = "Kpelle",   Region = "Central Liberia" },
+            new { Code = "bss", Name = "Bassa",    Region = "Central & Coastal Liberia" },
+            new { Code = "grb", Name = "Grebo",    Region = "Southeast Liberia" },
+            new { Code = "vai", Name = "Vai",      Region = "Northwest Liberia" },
+            new { Code = "mnd", Name = "Mende",    Region = "Lofa County" },
+            new { Code = "gio", Name = "Dan/Gio",  Region = "Nimba County" },
+            new { Code = "kra", Name = "Krahn",    Region = "Grand Gedeh County" },
+            new { Code = "lom", Name = "Loma",     Region = "Lofa County" },
+            new { Code = "kru", Name = "Kru",      Region = "Sinoe & Grand Kru Counties" },
+            new { Code = "lor", Name = "Lorma",    Region = "Lofa County" },
+            new { Code = "kis", Name = "Kissi",    Region = "Lofa County" },
+            new { Code = "gol", Name = "Gola",     Region = "Grand Cape Mount County" },
+            new { Code = "man", Name = "Mandingo", Region = "Lofa & Bong Counties" },
+            new { Code = "sap", Name = "Sapo",     Region = "Sinoe County" },
+            new { Code = "bel", Name = "Belle",    Region = "Bong County" },
+            new { Code = "dey", Name = "Dey",      Region = "Montserrado County" },
+            new { Code = "mno", Name = "Mano",     Region = "Nimba County" },
+            new { Code = "gbd", Name = "Gbandi",   Region = "Lofa County" },
+        };
+
+        var existingCodes = await _db.Languages
+            .Select(l => l.Code)
+            .ToListAsync();
+
+        var toAdd = allLanguages
+            .Where(l => !existingCodes.Contains(l.Code))
+            .Select(l => new Language
+            {
+                Code = l.Code,
+                Name = l.Name,
+                Region = l.Region
+            })
+            .ToList();
+
+        if (toAdd.Any())
+        {
+            _logger.LogInformation("Seeding {Count} missing languages...", toAdd.Count);
+            await _db.Languages.AddRangeAsync(toAdd);
+            await _db.SaveChangesAsync();
         }
     }
 }

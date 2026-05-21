@@ -12,6 +12,7 @@ public class SubmissionQueueConfiguration : IEntityTypeConfiguration<SubmissionQ
         builder.HasKey(s => s.Id);
         builder.HasIndex(s => s.Status);
         builder.HasIndex(s => new { s.EntryType, s.Status });
+        builder.HasIndex(s => s.SubmitterId);
 
         builder.Property(s => s.EntryType).HasConversion<string>();
         builder.Property(s => s.Status)
@@ -19,29 +20,21 @@ public class SubmissionQueueConfiguration : IEntityTypeConfiguration<SubmissionQ
             .HasDefaultValue(EntryStatus.PendingReview);
         builder.Property(s => s.AdminNote).HasMaxLength(2000);
 
+        // Submitter FK
         builder.HasOne(s => s.Submitter)
             .WithMany(u => u.Submissions)
             .HasForeignKey(s => s.SubmitterId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Reviewer FK
         builder.HasOne(s => s.ReviewedBy)
             .WithMany()
             .HasForeignKey(s => s.ReviewedById)
             .OnDelete(DeleteBehavior.SetNull);
 
-        // Polymorphic soft-navigation
-        builder.HasOne(s => s.WordEntry)
-            .WithMany(w => w.Submissions)
-            .HasForeignKey(s => s.EntryId)
-            .HasPrincipalKey(w => w.Id)
-            .IsRequired(false)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasOne(s => s.PhraseEntry)
-            .WithMany(p => p.Submissions)
-            .HasForeignKey(s => s.EntryId)
-            .HasPrincipalKey(p => p.Id)
-            .IsRequired(false)
-            .OnDelete(DeleteBehavior.Cascade);
+        // No FK constraints on EntryId — polymorphic reference
+        // resolved in application code via EntryType
+        builder.Ignore(s => s.WordEntry);
+        builder.Ignore(s => s.PhraseEntry);
     }
 }

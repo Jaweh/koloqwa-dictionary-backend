@@ -35,6 +35,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpGet("analytics")]
+    [Authorize(Roles = "SuperAdmin")]
     public async Task<IActionResult> GetAnalytics([FromQuery] int days = 30, CancellationToken ct = default)
     {
         var result = await _mediator.Send(new GetAnalyticsQuery(days), ct);
@@ -146,6 +147,7 @@ public class AdminController : ControllerBase
     // ── Users ─────────────────────────────────────────────────────────────────
 
     [HttpGet("users")]
+    [Authorize(Roles = "SuperAdmin")]
     public async Task<IActionResult> GetUsers(
         [FromQuery] string? search,
         [FromQuery] int page = 1,
@@ -165,6 +167,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpPut("users/{id:guid}/active")]
+    [Authorize(Roles = "SuperAdmin")]
     public async Task<IActionResult> ToggleActive(Guid id, [FromBody] ToggleUserActiveRequest request, CancellationToken ct)
     {
         await _mediator.Send(new ToggleUserActiveCommand(id, request.IsActive, _currentUser.UserId!.Value), ct);

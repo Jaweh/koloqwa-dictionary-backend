@@ -12,6 +12,8 @@ public class User : BaseEntity
     public bool IsActive { get; set; } = true;
     public bool EmailVerified { get; set; } = false;
     public DateTime? EmailVerifiedAt { get; set; }
+    public string? EmailVerificationToken { get; set; }
+    public DateTime? EmailVerificationExpiry { get; set; }
     public string? PasswordResetToken { get; set; }
     public DateTime? PasswordResetExpiry { get; set; }
 

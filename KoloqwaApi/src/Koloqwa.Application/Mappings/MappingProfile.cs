@@ -10,7 +10,8 @@ public class MappingProfile : Profile
     {
         // User
         CreateMap<User, UserDto>()
-            .ForMember(d => d.Role, o => o.MapFrom(s => s.Role.ToString()));
+            .ForMember(d => d.Role, o => o.MapFrom(s => s.Role.ToString()))
+            .ForMember(d => d.EmailVerified, o => o.MapFrom(s => s.EmailVerified));
 
         // Word
         CreateMap<WordEntry, WordSummaryDto>()

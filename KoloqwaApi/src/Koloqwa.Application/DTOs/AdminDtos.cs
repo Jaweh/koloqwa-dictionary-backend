@@ -44,6 +44,7 @@ public record AdminUserDto(
     string DisplayName,
     string Role,
     bool IsActive,
+    bool EmailVerified,
     int SubmissionCount,
     int ApprovedCount,
     DateTime CreatedAt

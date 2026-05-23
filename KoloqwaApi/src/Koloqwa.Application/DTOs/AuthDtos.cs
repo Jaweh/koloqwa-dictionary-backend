@@ -28,6 +28,7 @@ public record UserDto(
     string DisplayName,
     string Role,
     bool IsActive,
+    bool EmailVerified,
     DateTime CreatedAt
 );
 

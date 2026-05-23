@@ -31,21 +31,55 @@ public class PhraseRepository : IPhraseRepository
         if (!string.IsNullOrWhiteSpace(query))
         {
             var term = query.ToLower().Trim();
-            q = q.Where(p =>
+
+            var exactMatches = q.Where(p =>
                 p.PhraseText.ToLower().Contains(term) ||
                 p.Meanings.Any(m => m.Meaning.ToLower().Contains(term)));
+
+            var hasExact = await exactMatches.AnyAsync(ct);
+
+            if (hasExact)
+            {
+                q = exactMatches;
+            }
+            else
+            {
+                q = q.Where(p =>
+                    EF.Functions.Like(p.PhraseText.ToLower(), $"%{term}%") ||
+                    _db.PhraseEntries
+                        .FromSqlRaw(
+                            "SELECT * FROM \"PhraseEntries\" WHERE similarity(\"PhraseText\", {0}) > 0.2",
+                            term)
+                        .Select(x => x.Id)
+                        .Contains(p.Id));
+            }
         }
 
         var total = await q.CountAsync(ct);
-        var items = await q
-            .OrderBy(p => p.PhraseText)
+
+        IQueryable<PhraseEntry> ordered;
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var term = query.ToLower().Trim();
+            ordered = q.OrderByDescending(p => p.PhraseText.ToLower().StartsWith(term))
+                       .ThenBy(p => p.PhraseText);
+        }
+        else
+        {
+            ordered = q.OrderBy(p => p.PhraseText);
+        }
+
+        var items = await ordered
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
 
         return new PagedResult<PhraseEntry>
         {
-            Items = items, TotalCount = total, Page = page, PageSize = pageSize
+            Items = items,
+            TotalCount = total,
+            Page = page,
+            PageSize = pageSize
         };
     }
 

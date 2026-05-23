@@ -25,6 +25,11 @@ public class CreateWordCommandHandler : IRequestHandler<CreateWordCommand, Guid>
     {
         var req = request.Request;
 
+        // Block unverified users
+        var user = await _db.Users.FindAsync(new object[] { request.SubmitterId }, ct);
+        if (user != null && !user.EmailVerified)
+            throw new DomainException("Please verify your email address before submitting words.");
+
         var category = Enum.Parse<EntryCategory>(req.Category, true);
 
         // Validate language for tribal entries

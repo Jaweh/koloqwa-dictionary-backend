@@ -25,6 +25,11 @@ public class CreatePhraseCommandHandler : IRequestHandler<CreatePhraseCommand, G
     {
         var req = request.Request;
 
+        // Block unverified users
+        var user = await _db.Users.FindAsync(new object[] { request.SubmitterId }, ct);
+        if (user != null && !user.EmailVerified)
+            throw new DomainException("Please verify your email address before submitting phrases.");
+
         var category = Enum.Parse<EntryCategory>(req.Category, true);
 
         if (category == EntryCategory.Tribal)

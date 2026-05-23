@@ -34,24 +34,27 @@ public class GetAdminUsersQueryHandler : IRequestHandler<GetAdminUsersQuery, Pag
             .Take(request.PageSize)
             .ToListAsync(ct);
 
-        var userIds = users.Select(u => u.Id).ToList();
+        var userIds = users.Select(u => (Guid?)u.Id).ToList();
         var submissionCounts = await _db.SubmissionQueues
-            .Where(s => userIds.Contains(s.SubmitterId))
+            .Where(s => s.SubmitterId != null && userIds.Contains(s.SubmitterId))
             .GroupBy(s => s.SubmitterId)
             .Select(g => new { UserId = g.Key, Total = g.Count(), Approved = g.Count(s => s.Status == EntryStatus.Approved) })
-            .ToDictionaryAsync(g => g.UserId, ct);
+            .ToDictionaryAsync(g => g.UserId!.Value, ct);
 
         var dtos = users.Select(u =>
         {
             submissionCounts.TryGetValue(u.Id, out var counts);
             return new AdminUserDto(
                 u.Id, u.Email, u.DisplayName, u.Role.ToString(),
-                u.IsActive, counts?.Total ?? 0, counts?.Approved ?? 0, u.CreatedAt);
+                u.IsActive, u.EmailVerified, counts?.Total ?? 0, counts?.Approved ?? 0, u.CreatedAt);
         });
 
         return new PagedResult<AdminUserDto>
         {
-            Items = dtos, TotalCount = total, Page = request.Page, PageSize = request.PageSize
+            Items = dtos,
+            TotalCount = total,
+            Page = request.Page,
+            PageSize = request.PageSize
         };
     }
 }

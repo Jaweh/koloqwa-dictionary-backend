@@ -21,35 +21,25 @@ public class DeleteAccountCommandHandler : IRequestHandler<DeleteAccountCommand>
         if (user.Role == UserRole.Admin || user.Role == UserRole.SuperAdmin)
             throw new DomainException("Admin accounts cannot be deleted. Contact a SuperAdmin to remove your account.");
 
-        // Anonymize submissions — keep the entries, remove the link to this user
-        var submissions = await _db.SubmissionQueues
+        // Anonymize submissions — set SubmitterId to null
+        await _db.SubmissionQueues
             .Where(s => s.SubmitterId == request.UserId)
-            .ToListAsync(ct);
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.SubmitterId, (Guid?)null), ct);
 
-        foreach (var s in submissions)
-            s.SubmitterId = Guid.Empty;
-
-        // Anonymize word entries submitted by this user
-        var words = await _db.WordEntries
+        // Anonymize word entries
+        await _db.WordEntries
             .Where(w => w.SubmittedById == request.UserId)
-            .ToListAsync(ct);
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.SubmittedById, (Guid?)null), ct);
 
-        foreach (var w in words)
-            w.SubmittedById = null;
-
-        // Anonymize phrase entries submitted by this user
-        var phrases = await _db.PhraseEntries
+        // Anonymize phrase entries
+        await _db.PhraseEntries
             .Where(p => p.SubmittedById == request.UserId)
-            .ToListAsync(ct);
-
-        foreach (var p in phrases)
-            p.SubmittedById = null;
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.SubmittedById, (Guid?)null), ct);
 
         // Remove refresh tokens
-        var tokens = await _db.RefreshTokens
+        await _db.RefreshTokens
             .Where(t => t.UserId == request.UserId)
-            .ToListAsync(ct);
-        _db.RefreshTokens.RemoveRange(tokens);
+            .ExecuteDeleteAsync(ct);
 
         _db.Users.Remove(user);
         await _db.SaveChangesAsync(ct);

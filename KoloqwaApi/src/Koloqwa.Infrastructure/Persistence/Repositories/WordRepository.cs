@@ -21,39 +21,72 @@ public class WordRepository : IWordRepository
             .Where(w => w.Status == EntryStatus.Approved)
             .AsQueryable();
 
-        // Category filter
         if (!string.IsNullOrWhiteSpace(category) &&
             Enum.TryParse<EntryCategory>(category, true, out var cat))
             q = q.Where(w => w.Category == cat);
 
-        // Language filter (for tribal entries)
         if (!string.IsNullOrWhiteSpace(languageCode))
             q = q.Where(w => w.Language != null && w.Language.Code == languageCode);
 
-        // Part of speech filter
         if (!string.IsNullOrWhiteSpace(partOfSpeech) &&
             Enum.TryParse<PartOfSpeech>(partOfSpeech, true, out var pos))
             q = q.Where(w => w.PartOfSpeech == pos);
 
-        // Full-text search
         if (!string.IsNullOrWhiteSpace(query))
         {
             var term = query.ToLower().Trim();
-            q = q.Where(w =>
+
+            // Exact/partial match first, then fuzzy fallback
+            var exactMatches = q.Where(w =>
                 w.Headword.ToLower().Contains(term) ||
                 w.Definitions.Any(d => d.Definition.ToLower().Contains(term)));
+
+            var hasExact = await exactMatches.AnyAsync(ct);
+
+            if (hasExact)
+            {
+                q = exactMatches;
+            }
+            else
+            {
+                // Fuzzy match using trigram similarity via raw SQL
+                q = q.Where(w =>
+                    EF.Functions.Like(w.Headword.ToLower(), $"%{term}%") ||
+                    _db.WordEntries
+                        .FromSqlRaw(
+                            "SELECT * FROM \"WordEntries\" WHERE similarity(\"Headword\", {0}) > 0.2",
+                            term)
+                        .Select(x => x.Id)
+                        .Contains(w.Id));
+            }
         }
 
         var total = await q.CountAsync(ct);
-        var items = await q
-            .OrderBy(w => w.Headword)
+
+        // When fuzzy searching, order by similarity score
+        IQueryable<WordEntry> ordered;
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var term = query.ToLower().Trim();
+            ordered = q.OrderByDescending(w => w.Headword.ToLower().StartsWith(term))
+                       .ThenBy(w => w.Headword);
+        }
+        else
+        {
+            ordered = q.OrderBy(w => w.Headword);
+        }
+
+        var items = await ordered
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
 
         return new PagedResult<WordEntry>
         {
-            Items = items, TotalCount = total, Page = page, PageSize = pageSize
+            Items = items,
+            TotalCount = total,
+            Page = page,
+            PageSize = pageSize
         };
     }
 

@@ -35,6 +35,9 @@ public static class DependencyInjection
         services.AddScoped<ISlugService, SlugService>();
         services.AddScoped<IAuditService, AuditService>();
 
+        // Email service
+        services.AddHttpClient<IEmailService, ResendEmailService>();
+
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<DatabaseSeeder>();

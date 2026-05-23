@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Koloqwa.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Koloqwa.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260523110744_AddTrigramExtension")]
+    partial class AddTrigramExtension
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -302,7 +305,7 @@ namespace Koloqwa.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasDefaultValue("PendingReview");
 
-                    b.Property<Guid?>("SubmitterId")
+                    b.Property<Guid>("SubmitterId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -346,12 +349,6 @@ namespace Koloqwa.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
-
-                    b.Property<DateTime?>("EmailVerificationExpiry")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("EmailVerificationToken")
-                        .HasColumnType("text");
 
                     b.Property<bool>("EmailVerified")
                         .HasColumnType("boolean");
@@ -775,7 +772,8 @@ namespace Koloqwa.Infrastructure.Persistence.Migrations
                     b.HasOne("Koloqwa.Domain.Entities.User", "Submitter")
                         .WithMany("Submissions")
                         .HasForeignKey("SubmitterId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("Koloqwa.Domain.Entities.WordEntry", null)
                         .WithMany("Submissions")

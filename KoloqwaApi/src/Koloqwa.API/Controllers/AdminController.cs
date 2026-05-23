@@ -170,4 +170,47 @@ public class AdminController : ControllerBase
         await _mediator.Send(new ToggleUserActiveCommand(id, request.IsActive, _currentUser.UserId!.Value), ct);
         return Ok(ApiResponse<object>.Ok(null, request.IsActive ? "User activated." : "User deactivated."));
     }
+
+    // ── Reports ───────────────────────────────────────────────────────────────
+
+    [HttpGet("reports")]
+    public async Task<IActionResult> GetReports(
+        [FromQuery] string? status,
+        [FromQuery] string? reason,
+        [FromQuery] int page = 1,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetAdminReportsQuery(status, reason, page), ct);
+        return Ok(ApiResponse<PagedResult<AdminReportDto>>.Ok(result));
+    }
+
+    [HttpPost("reports/{id:guid}/review")]
+    public async Task<IActionResult> ReviewReport(Guid id, [FromBody] ReviewReportRequest request, CancellationToken ct)
+    {
+        await _mediator.Send(new ReviewReportCommand(id, request.Action, _currentUser.UserId!.Value), ct);
+        return Ok(ApiResponse<object>.Ok(null, $"Report {request.Action.ToLower()}d."));
+    }
+
+    // ── Suggestions ───────────────────────────────────────────────────────────
+
+    [HttpGet("suggestions")]
+    public async Task<IActionResult> GetSuggestions(
+        [FromQuery] string? status,
+        [FromQuery] int page = 1,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetAdminSuggestionsQuery(status, page), ct);
+        return Ok(ApiResponse<PagedResult<AdminSuggestionDto>>.Ok(result));
+    }
+
+    [HttpPost("suggestions/{id:guid}/review")]
+    public async Task<IActionResult> ReviewSuggestion(Guid id, [FromBody] ReviewSuggestionRequest request, CancellationToken ct)
+    {
+        await _mediator.Send(new ReviewSuggestionCommand(id, request.Action, request.AdminNote, _currentUser.UserId!.Value), ct);
+        return Ok(ApiResponse<object>.Ok(null, $"Suggestion {request.Action.ToLower()}ed."));
+    }
 }
+
+public record ReviewSubmissionRequest(string Action, string? AdminNote);
+public record ReviewReportRequest(string Action);
+public record ReviewSuggestionRequest(string Action, string? AdminNote);

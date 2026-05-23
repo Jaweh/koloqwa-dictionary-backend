@@ -22,6 +22,10 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<WordEntry> WordEntries => Set<WordEntry>();
     public DbSet<WordDefinition> WordDefinitions => Set<WordDefinition>();
     public DbSet<WordExample> WordExamples => Set<WordExample>();
+    public DbSet<WordSuggestion> WordSuggestions => Set<WordSuggestion>();
+    public DbSet<WordReport> WordReports => Set<WordReport>();
+    public DbSet<DefinitionVote> DefinitionVotes => Set<DefinitionVote>();
+    public DbSet<UserFavourite> UserFavourites => Set<UserFavourite>();
     public DbSet<PhraseEntry> PhraseEntries => Set<PhraseEntry>();
     public DbSet<PhraseMeaning> PhraseMeanings => Set<PhraseMeaning>();
     public DbSet<SubmissionQueue> SubmissionQueues => Set<SubmissionQueue>();

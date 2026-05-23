@@ -11,6 +11,10 @@ public interface IApplicationDbContext
     DbSet<WordEntry> WordEntries { get; }
     DbSet<WordDefinition> WordDefinitions { get; }
     DbSet<WordExample> WordExamples { get; }
+    DbSet<WordSuggestion> WordSuggestions { get; }
+    DbSet<WordReport> WordReports { get; }
+    DbSet<DefinitionVote> DefinitionVotes { get; }
+    DbSet<UserFavourite> UserFavourites { get; }
     DbSet<PhraseEntry> PhraseEntries { get; }
     DbSet<PhraseMeaning> PhraseMeanings { get; }
     DbSet<SubmissionQueue> SubmissionQueues { get; }

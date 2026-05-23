@@ -47,7 +47,6 @@ public class ProfileController : ControllerBase
             request.DisplayName,
             request.Email), ct);
 
-        // Return updated user data so frontend can refresh auth state
         var user = await _db.Users.FindAsync(new object[] { _currentUser.UserId!.Value }, ct);
         return Ok(ApiResponse<object>.Ok(new {
             id = user!.Id,
@@ -68,6 +67,14 @@ public class ProfileController : ControllerBase
             request.CurrentPassword,
             request.NewPassword), ct);
         return Ok(ApiResponse<object>.Ok(null, "Password changed successfully."));
+    }
+
+    /// <summary>Delete own account. Not available to Admin or SuperAdmin roles.</summary>
+    [HttpDelete]
+    public async Task<IActionResult> DeleteAccount(CancellationToken ct)
+    {
+        await _mediator.Send(new DeleteAccountCommand(_currentUser.UserId!.Value), ct);
+        return Ok(ApiResponse<object>.Ok(null, "Account deleted successfully."));
     }
 }
 

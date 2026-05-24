@@ -1,10 +1,12 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Koloqwa.API.Middleware;
 using Koloqwa.Application;
 using Koloqwa.Infrastructure;
 using Koloqwa.Infrastructure.Persistence;
 using Koloqwa.Infrastructure.Persistence.Seeders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -56,6 +58,62 @@ try
     builder.Services.AddAuthorizationBuilder()
         .AddPolicy("AdminOnly", p => p.RequireRole("Admin", "SuperAdmin"))
         .AddPolicy("SuperAdminOnly", p => p.RequireRole("SuperAdmin"));
+
+    // ── Rate Limiting ─────────────────────────────────────────────────────────
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = 429;
+
+        // Login — 10 attempts per minute per IP
+        options.AddPolicy("login", context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0
+                }));
+
+        // Registration — 5 attempts per hour per IP
+        options.AddPolicy("register", context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromHours(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0
+                }));
+
+        // Forgot password — 5 attempts per hour per IP
+        options.AddPolicy("forgot-password", context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromHours(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0
+                }));
+
+        // Submissions — 20 per hour per user
+        options.AddPolicy("submit", context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.User.Identity?.Name
+                    ?? context.Connection.RemoteIpAddress?.ToString()
+                    ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 20,
+                    Window = TimeSpan.FromHours(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0
+                }));
+    });
 
     // ── Controllers + Swagger ────────────────────────────────────────────────
     builder.Services.AddControllers();
@@ -113,7 +171,7 @@ try
         app.UseSwaggerUI(c =>
         {
             c.SwaggerEndpoint("/swagger/v1/swagger.json", "Koloqwa API v1");
-            c.RoutePrefix = string.Empty; // Swagger at root
+            c.RoutePrefix = string.Empty;
         });
     }
 
@@ -121,6 +179,7 @@ try
     app.UseCors("AllowFrontend");
     app.UseAuthentication();
     app.UseAuthorization();
+    app.UseRateLimiter();
     app.MapControllers();
 
     // ── Run DB Migrations + Seed ─────────────────────────────────────────────

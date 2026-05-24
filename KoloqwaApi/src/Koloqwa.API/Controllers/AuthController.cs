@@ -1,11 +1,15 @@
 using Koloqwa.Application.Common.Interfaces;
 using Koloqwa.Application.Common.Models;
-using Koloqwa.Application.DTOs;
 using Koloqwa.Application.Features.Auth.Commands;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Configuration;
+using RegisterRequest = Koloqwa.Application.DTOs.RegisterRequest;
+using LoginRequest = Koloqwa.Application.DTOs.LoginRequest;
+using AuthResponse = Koloqwa.Application.DTOs.AuthResponse;
+using RefreshTokenRequest = Koloqwa.Application.DTOs.RefreshTokenRequest;
 
 namespace Koloqwa.API.Controllers;
 
@@ -27,6 +31,7 @@ public class AuthController : ControllerBase
 
     /// <summary>Register a new user account.</summary>
     [HttpPost("register")]
+    [EnableRateLimiting("register")]
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
@@ -39,6 +44,7 @@ public class AuthController : ControllerBase
 
     /// <summary>Authenticate and receive JWT tokens.</summary>
     [HttpPost("login")]
+    [EnableRateLimiting("login")]
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct)
@@ -74,4 +80,27 @@ public class AuthController : ControllerBase
         await _mediator.Send(new SendVerificationEmailCommand(_currentUser.UserId!.Value, appUrl), ct);
         return Ok(ApiResponse<object>.Ok(null, "Verification email sent. Please check your inbox."));
     }
+
+    /// <summary>Send password reset email.</summary>
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken ct)
+    {
+        var appUrl = _config["AppUrl"] ?? "http://localhost:3000";
+        await _mediator.Send(new ForgotPasswordCommand(request.Email, appUrl), ct);
+        return Ok(ApiResponse<object>.Ok(null, "If an account exists with that email, a reset link has been sent."));
+    }
+
+    /// <summary>Reset password using token from email link.</summary>
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken ct)
+    {
+        await _mediator.Send(new ResetPasswordCommand(request.Token, request.NewPassword), ct);
+        return Ok(ApiResponse<object>.Ok(null, "Password reset successfully. You can now sign in with your new password."));
+    }
+
+    public record ForgotPasswordRequest(string Email);
+    public record ResetPasswordRequest(string Token, string NewPassword);
 }

@@ -6,6 +6,7 @@ using Koloqwa.Application.Features.Phrases.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Koloqwa.API.Controllers;
 
@@ -55,6 +56,7 @@ public class PhraseController : ControllerBase
     /// <summary>Submit a new phrase entry. Requires authentication.</summary>
     [HttpPost]
     [Authorize]
+    [EnableRateLimiting("submit")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
